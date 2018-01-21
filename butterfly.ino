@@ -48,7 +48,7 @@ void randomColor(uint8_t rgb[3]) {
     n2 = random (3);
   } while (n1 == n2);
 
-  makeColor (v, n1, n2);
+  makeColor (v, n1, n2, rgb);
 }
 
 void blendColors(uint16_t brightness, uint8_t blend, const uint8_t rgb1[3], const uint8_t rgb2[3], uint8_t rgb[]) {
@@ -93,11 +93,14 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
 void showColors(uint16_t brightness) {
   uint8_t result[3][3];
   computeColors(brightness, result);
+  
   setColor(2, result[0]);
   setColor(5, result[0]);
   setColor(1, result[1]);
   setColor(6, result[1]);
   setColor(0, result[2]);
   setColor(7, result[2]);
+  
+  strip.show();
 }
 
