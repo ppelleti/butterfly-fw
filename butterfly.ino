@@ -5,7 +5,11 @@
 #define POT_PIN A2
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
 
-uint8_t colors[4][3];
+struct Pixel {
+  uint8_t p[3];
+};
+
+Pixel colors[4];
 uint8_t fade;
 
 void setup() {
@@ -17,7 +21,7 @@ void setup() {
   pinMode(POT_PIN, INPUT);
 
   for (uint8_t i = 0; i < 4; i++) {
-    randomColor(colors[i]);
+    randomColor(colors[i].p);
   }
 }
 
@@ -52,7 +56,7 @@ void randomColor(uint8_t rgb[3]) {
   makeColor (v, n1, n2, rgb);
 }
 
-void blendColors(uint16_t brightness, uint8_t blend, const uint8_t rgb1[3], const uint8_t rgb2[3], uint8_t rgb[]) {
+void blendColors(uint16_t brightness, uint8_t blend, const uint8_t rgb1[3], const uint8_t rgb2[3], uint8_t rgb[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     uint32_t accum1, accum2;
     accum1 = rgb1[i];
@@ -66,9 +70,9 @@ void blendColors(uint16_t brightness, uint8_t blend, const uint8_t rgb1[3], cons
   }
 }
 
-void computeColors(uint16_t brightness, uint8_t out[3][3]) {
+void computeColors(uint16_t brightness, Pixel out[3]) {
   for (uint8_t i = 0; i < 3; i++) {
-    blendColors(brightness, fade, colors[i], colors[i+1], out[i]);
+    blendColors(brightness, fade, colors[i].p, colors[i+1].p, out[i].p);
   }
 }
 
@@ -78,11 +82,11 @@ void advance(uint8_t inc) {
   if (newFade < fade) {
     for (int8_t i = 3; i >= 0; i--) {
       for (uint8_t j = 0; j < 3; j++) {
-        colors[i+1][j] = colors[i][j];
+        colors[i+1].p[j] = colors[i].p[j];
       }
-      randomColor(colors[0]);
     }
-
+    
+    randomColor(colors[0].p);
   }
   
   fade = newFade;
@@ -93,15 +97,15 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
 }
 
 void showColors(uint16_t brightness) {
-  uint8_t result[3][3];
+  Pixel result[3];
   computeColors(brightness, result);
   
-  setColor(2, result[0]);
-  setColor(5, result[0]);
-  setColor(1, result[1]);
-  setColor(6, result[1]);
-  setColor(0, result[2]);
-  setColor(7, result[2]);
+  setColor(2, result[0].p);
+  setColor(5, result[0].p);
+  setColor(1, result[1].p);
+  setColor(6, result[1].p);
+  setColor(0, result[2].p);
+  setColor(7, result[2].p);
   
   strip.show();
 }
