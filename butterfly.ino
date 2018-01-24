@@ -24,9 +24,10 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  uint16_t brightness = 1023;
+  uint16_t brightness = 128;
   showColors(brightness);
   advance(4);
+  delay(20);
 }
 
 void makeColor(uint8_t v, uint8_t n1, uint8_t n2, uint8_t rgb[3]) {
@@ -76,14 +77,15 @@ void advance(uint8_t inc) {
 
   if (newFade < fade) {
     for (int8_t i = 3; i >= 0; i--) {
-      for (uint8_t j = 0; i < 3; j++) {
+      for (uint8_t j = 0; j < 3; j++) {
         colors[i+1][j] = colors[i][j];
       }
       randomColor(colors[0]);
     }
 
-    fade = newFade;
   }
+  
+  fade = newFade;
 }
 
 void setColor(uint8_t pixNo, const uint8_t c[3]) {
