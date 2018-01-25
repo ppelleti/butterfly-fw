@@ -20,6 +20,9 @@ void setup() {
 
   pinMode(POT_PIN, INPUT);
 
+  // Serial.begin(9600);
+  // Serial.println("Hello, Serial!");
+
   for (uint8_t i = 0; i < 4; i++) {
     randomColor(colors[i].p);
   }
@@ -29,6 +32,8 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   uint16_t brightness = 128;
+  // Serial.print(fade);
+  // Serial.println();
   showColors(brightness);
   advance(4);
   delay(20);
@@ -80,7 +85,7 @@ void advance(uint8_t inc) {
   uint8_t newFade = fade + inc;
 
   if (newFade < fade) {
-    for (int8_t i = 3; i >= 0; i--) {
+    for (int8_t i = 2; i >= 0; i--) {
       for (uint8_t j = 0; j < 3; j++) {
         colors[i+1].p[j] = colors[i].p[j];
       }
