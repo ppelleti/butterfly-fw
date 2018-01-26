@@ -48,7 +48,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  uint16_t brightness = analogRead(POT_PIN);
+  uint8_t brightness = pgm_read_byte(&gamma8[analogRead(POT_PIN) >> 2]);
   showColors(brightness);
   advance(4);
   delay(20);
@@ -76,23 +76,21 @@ void randomColor(uint8_t rgb[3]) {
   makeColor (v, n1, n2, rgb);
 }
 
-void blendColors(uint16_t brightness, uint8_t blend, const uint8_t rgb1[3], const uint8_t rgb2[3], uint8_t rgb[3]) {
+void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3], const uint8_t rgb2[3], uint8_t rgb[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     uint32_t accum1, accum2;
-    uint8_t linear;
     accum1 = rgb1[i];
     accum2 = rgb2[i];
     accum1 *= blend;
     accum2 *= (255 - blend);
     accum1 += accum2;
     accum1 *= brightness;
-    accum1 >>= 18;
-    linear = accum1;
-    rgb[i] = pgm_read_byte(&gamma8[linear]);
+    accum1 >>= 16;
+    rgb[i] = accum1;
   }
 }
 
-void computeColors(uint16_t brightness, Pixel out[3]) {
+void computeColors(uint8_t brightness, Pixel out[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     blendColors(brightness, fade, colors[i].p, colors[i+1].p, out[i].p);
   }
@@ -122,7 +120,7 @@ void px(uint8_t pixNo, uint8_t idx) {
   setColor(pixNo - 1, result[idx].p);
 }
 
-void showColors(uint16_t brightness) {
+void showColors(uint8_t brightness) {
   computeColors(brightness, result);
 
   for (uint8_t i = 1; i <= N_LEDS; i++) {
