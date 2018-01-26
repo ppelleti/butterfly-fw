@@ -10,6 +10,7 @@ struct Pixel {
 };
 
 Pixel colors[4];
+Pixel result[3];
 uint8_t fade;
 
 void setup() {
@@ -96,16 +97,28 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
   strip.setPixelColor(pixNo, strip.Color(c[0], c[1], c[2]));
 }
 
+void px(uint8_t pixNo, uint8_t idx) {
+  setColor(pixNo - 1, result[idx].p);
+}
+
 void showColors(uint16_t brightness) {
-  Pixel result[3];
   computeColors(brightness, result);
-  
-  setColor(2, result[0].p);
-  setColor(5, result[0].p);
-  setColor(1, result[1].p);
-  setColor(6, result[1].p);
-  setColor(0, result[2].p);
-  setColor(7, result[2].p);
+
+  for (uint8_t i = 1; i <= N_LEDS; i++) {
+    px(i, 1);
+  }
+
+  px(1, 0);
+  px(4, 0);
+  px(10, 0);
+  px(13, 0);
+
+  px(3, 2);
+  px(6, 2);
+  px(8, 2);
+  px(12, 2);
+  px(15, 2);
+  px(17, 2);
   
   strip.show();
 }
