@@ -1,4 +1,5 @@
 #include <Adafruit_NeoPixel.h>
+#include <EEPROM.h>
 
 #define N_LEDS 18
 #define LED_PIN 3
@@ -7,6 +8,11 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ80
 
 struct Pixel {
   uint8_t p[3];
+};
+
+union Seed {
+  uint32_t seed;
+  uint8_t bytes[4];
 };
 
 Pixel colors[4];
@@ -39,6 +45,8 @@ void setup() {
   strip.show(); // Initialize all pixels to 'off'
 
   pinMode(POT_PIN, INPUT);
+
+  initialize_seed();
 
   for (uint8_t i = 0; i < 4; i++) {
     randomColor(colors[i].p);
@@ -76,7 +84,8 @@ void randomColor(uint8_t rgb[3]) {
   makeColor (v, n1, n2, rgb);
 }
 
-void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3], const uint8_t rgb2[3], uint8_t rgb[3]) {
+void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
+                 const uint8_t rgb2[3], uint8_t rgb[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     uint32_t accum1, accum2;
     accum1 = rgb1[i];
@@ -140,5 +149,23 @@ void showColors(uint8_t brightness) {
   px(17, 2);
   
   strip.show();
+}
+
+void initialize_seed() {
+  Seed oldSeed, newSeed;
+
+  for (uint8_t i = 0; i < 4; i++) {
+    oldSeed.bytes[i] = EEPROM.read(i);
+  }
+
+  randomSeed(oldSeed.seed);
+
+  newSeed.seed = oldSeed.seed + 1;
+
+  for (uint8_t i = 0; i < 4; i++) {
+    if (oldSeed.bytes[i] != newSeed.bytes[i]) {
+      EEPROM.write(i, newSeed.bytes[i]);
+    }
+  }
 }
 
