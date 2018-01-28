@@ -1,3 +1,42 @@
+/*
+ * Copyright 2018 Patrick Pelletier
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * This is the firmware for my butterfly nightlight:
+ * https://github.com/ppelleti/butterfly-hw
+ *
+ * The firmware is meant to run on an ATtiny85 microcontroller,
+ * programmed with the Arduino IDE.  Only two pins on the microcontroller
+ * are used.  LED_PIN is connected to 18 "NeoPixel" (WS2812) LEDs.
+ * POT_PIN is connected to a potentiometer (labeled "POT1" on the back of
+ * the butterfly board.)  The potentiometer is used to control the
+ * brightness.
+ *
+ * The firmware produces bands of random color which slowly move outward.
+ * The random seed is stored in EEPROM, and is incremented each time the
+ * program starts, so that the random sequence is different every time.
+ *
+ * This program requires the Adafruit NeoPixel library:
+ * https://github.com/adafruit/Adafruit_NeoPixel
+ *
+ * and requires support for the ATtiny microcontroller:
+ * https://github.com/damellis/attiny
+ */
+
 #include <Adafruit_NeoPixel.h>
 #include <EEPROM.h>
 
@@ -15,8 +54,14 @@ union Seed {
   uint8_t bytes[4];
 };
 
+// Four bands of color.
 Pixel colors[4];
+
+// The result of sampling three bands of color from in between the
+// four bands in colors[].
 Pixel result[3];
+
+// Our position (0-255) "in between" the color bands in colors[].
 uint8_t fade;
 
 // https://learn.adafruit.com/led-tricks-gamma-correction/the-quick-fix
@@ -62,6 +107,8 @@ void loop() {
   delay(20);
 }
 
+// Given v (0-255), n1 (0-2), and n2 (0-2), where n1 != n2,
+// produce a fully saturated RGB color.
 void makeColor(uint8_t v, uint8_t n1, uint8_t n2, uint8_t rgb[3]) {
   uint8_t i;
   for (i = 0; i < 3; i++) {
@@ -72,6 +119,7 @@ void makeColor(uint8_t v, uint8_t n1, uint8_t n2, uint8_t rgb[3]) {
   rgb[n2] = 255;
 }
 
+// Choose a random (but fully saturated) RGB color.
 void randomColor(uint8_t rgb[3]) {
   uint8_t v, n1, n2;
 
@@ -84,6 +132,11 @@ void randomColor(uint8_t rgb[3]) {
   makeColor (v, n1, n2, rgb);
 }
 
+// Given two color bands rgb1[] and rgb2[], sample in between them and
+// put the result in rgb[].
+// brightness (0-255) specifies the overall brightness.
+// blend (0-255) specifies where in between the two bands to sample
+// the color.
 void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
                  const uint8_t rgb2[3], uint8_t rgb[3]) {
   for (uint8_t i = 0; i < 3; i++) {
@@ -99,12 +152,20 @@ void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
   }
 }
 
+// Compute three color bands, sampled from in between the four color
+// bands in the global variable colors[], and put the result in out[].
+// brightness (0-255) specifies the overall brightness.
 void computeColors(uint8_t brightness, Pixel out[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     blendColors(brightness, fade, colors[i].p, colors[i+1].p, out[i].p);
   }
 }
 
+// Increment the sampling position between the color bands by the
+// specified amount.  This increments the global variable fade, but
+// when it wraps around, the color bands in the global variable
+// colors[] are moved up by one, and a new random color is stored
+// in colors[0].
 void advance(uint8_t inc) {
   uint8_t newFade = fade + inc;
 
@@ -114,21 +175,28 @@ void advance(uint8_t inc) {
         colors[i+1].p[j] = colors[i].p[j];
       }
     }
-    
+
     randomColor(colors[0].p);
   }
-  
+
   fade = newFade;
 }
 
+// Given a pixel number (0-17), writes the specified color to that pixel.
 void setColor(uint8_t pixNo, const uint8_t c[3]) {
   strip.setPixelColor(pixNo, strip.Color(c[0], c[1], c[2]));
 }
 
+// Given a pixel number (1-18), writes the specified color band from the
+// result[] global variable to that pixel.
 void px(uint8_t pixNo, uint8_t idx) {
   setColor(pixNo - 1, result[idx].p);
 }
 
+// Given the contents of the global variables colors[] and fade,
+// and the brightness (0-255) passed as an argument, compute the
+// colors that should be shown on the LEDs, and then write the colors
+// out to the physical LEDs.
 void showColors(uint8_t brightness) {
   computeColors(brightness, result);
 
@@ -147,10 +215,13 @@ void showColors(uint8_t brightness) {
   px(12, 2);
   px(15, 2);
   px(17, 2);
-  
+
   strip.show();
 }
 
+// Initialize the random number generator with the seed stored in
+// the first four bytes of EEPROM.  Then, increment the seed stored
+// in EEPROM.
 void initialize_seed() {
   Seed oldSeed, newSeed;
 
@@ -168,4 +239,3 @@ void initialize_seed() {
     }
   }
 }
-
