@@ -45,21 +45,17 @@
 #define POT_PIN A2
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
 
-struct Pixel {
-  uint8_t p[3];
-};
-
 union Seed {
   uint32_t seed;
   uint8_t bytes[4];
 };
 
 // Four bands of color.
-Pixel colors[4];
+uint8_t colors[4][3];
 
 // The result of sampling three bands of color from in between the
 // four bands in colors[].
-Pixel result[3];
+uint8_t result[3][3];
 
 // Our position (0-255) "in between" the color bands in colors[].
 uint8_t fade;
@@ -94,7 +90,7 @@ void setup() {
   initialize_seed();
 
   for (uint8_t i = 0; i < 4; i++) {
-    randomColor(colors[i].p);
+    randomColor(colors[i]);
   }
 }
 
@@ -155,9 +151,9 @@ void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
 // Compute three color bands, sampled from in between the four color
 // bands in the global variable colors[], and put the result in out[].
 // brightness (0-255) specifies the overall brightness.
-void computeColors(uint8_t brightness, Pixel out[3]) {
+void computeColors(uint8_t brightness, uint8_t out[3][3]) {
   for (uint8_t i = 0; i < 3; i++) {
-    blendColors(brightness, fade, colors[i].p, colors[i+1].p, out[i].p);
+    blendColors(brightness, fade, colors[i], colors[i+1], out[i]);
   }
 }
 
@@ -172,11 +168,11 @@ void advance(uint8_t inc) {
   if (newFade < fade) {
     for (int8_t i = 2; i >= 0; i--) {
       for (uint8_t j = 0; j < 3; j++) {
-        colors[i+1].p[j] = colors[i].p[j];
+        colors[i+1][j] = colors[i][j];
       }
     }
 
-    randomColor(colors[0].p);
+    randomColor(colors[0]);
   }
 
   fade = newFade;
@@ -190,7 +186,7 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
 // Given a pixel number (1-18), writes the specified color band from the
 // result[] global variable to that pixel.
 void px(uint8_t pixNo, uint8_t idx) {
-  setColor(pixNo - 1, result[idx].p);
+  setColor(pixNo - 1, result[idx]);
 }
 
 // Given the contents of the global variables colors[] and fade,
