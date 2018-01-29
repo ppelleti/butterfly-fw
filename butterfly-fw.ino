@@ -75,6 +75,12 @@ const uint8_t PROGMEM gamma8[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
+// These are just some randomly-generated numbers.  There is nothing
+// special about them.
+const uint8_t PROGMEM thresholds[N_LEDS] = {
+  160, 101, 102, 136,  34, 239, 104, 190, 128,
+  228, 110, 249,  33,  53,  83, 146,  57,   3 };
+
 void setup() {
   // put your setup code here, to run once:
 
@@ -130,7 +136,7 @@ void randomColor(uint8_t rgb[3]) {
 // blend (0-255) specifies where in between the two bands to sample
 // the color.
 void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
-                 const uint8_t rgb2[3], uint8_t rgb[3]) {
+                 const uint8_t rgb2[3], uint16_t rgb[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     uint32_t accum1, accum2;
     accum1 = rgb1[i];
@@ -139,7 +145,7 @@ void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
     accum2 *= (255 - blend);
     accum1 += accum2;
     accum1 *= brightness;
-    accum1 >>= 16;
+    accum1 >>= 8;
     rgb[i] = accum1;
   }
 }
@@ -147,7 +153,7 @@ void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
 // Compute three color bands, sampled from in between the four color
 // bands in the global variable colors[], and put the result in out[].
 // brightness (0-255) specifies the overall brightness.
-void computeColors(uint8_t brightness, uint8_t out[3][3]) {
+void computeColors(uint8_t brightness, uint16_t out[3][3]) {
   for (uint8_t i = 0; i < 3; i++) {
     blendColors(brightness, fade, colors[i], colors[i+1], out[i]);
   }
@@ -174,6 +180,20 @@ void advance(uint8_t inc) {
   fade = newFade;
 }
 
+// Round a 16-bit number to an 8-bit number, but round at a different
+// place for each LED, so they don't appear to all change at once.
+uint8_t handleRounding(uint8_t pixNo, uint16_t value) {
+  uint8_t hi, lo, threshold;
+  hi = value >> 8;
+  lo = value;
+  threshold = pgm_read_word(&thresholds[pixNo]);
+  if (hi < 255 && lo > threshold) {
+    return hi + 1;
+  } else {
+    return hi;
+  }
+}
+
 // Given a pixel number (0-17), writes the specified color to that pixel.
 void setColor(uint8_t pixNo, const uint8_t c[3]) {
   strip.setPixelColor(pixNo, strip.Color(c[0], c[1], c[2]));
@@ -181,8 +201,12 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
 
 // Given a pixel number (1-18), writes the specified color band from
 // result[] to that pixel.
-void px(const uint8_t result[3][3], uint8_t pixNo, uint8_t idx) {
-  setColor(pixNo - 1, result[idx]);
+void px(const uint16_t result[3][3], uint8_t pixNo, uint8_t idx) {
+  uint8_t c[3];
+  for (uint8_t i = 0; i < 3; i++) {
+    c[i] = handleRounding(pixNo - 1, result[idx][i]);
+  }
+  setColor(pixNo - 1, c);
 }
 
 // Given the contents of the global variables colors[] and fade,
@@ -192,7 +216,7 @@ void px(const uint8_t result[3][3], uint8_t pixNo, uint8_t idx) {
 void showColors(uint8_t brightness) {
   // The result of sampling three bands of color from in between the
   // four bands in colors[].
-  uint8_t result[3][3];
+  uint16_t result[3][3];
 
   computeColors(brightness, result);
 
