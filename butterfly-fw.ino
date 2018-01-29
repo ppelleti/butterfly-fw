@@ -53,10 +53,6 @@ union Seed {
 // Four bands of color.
 uint8_t colors[4][3];
 
-// The result of sampling three bands of color from in between the
-// four bands in colors[].
-uint8_t result[3][3];
-
 // Our position (0-255) "in between" the color bands in colors[].
 uint8_t fade;
 
@@ -183,9 +179,9 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
   strip.setPixelColor(pixNo, strip.Color(c[0], c[1], c[2]));
 }
 
-// Given a pixel number (1-18), writes the specified color band from the
-// result[] global variable to that pixel.
-void px(uint8_t pixNo, uint8_t idx) {
+// Given a pixel number (1-18), writes the specified color band from
+// result[] to that pixel.
+void px(const uint8_t result[3][3], uint8_t pixNo, uint8_t idx) {
   setColor(pixNo - 1, result[idx]);
 }
 
@@ -194,23 +190,27 @@ void px(uint8_t pixNo, uint8_t idx) {
 // colors that should be shown on the LEDs, and then write the colors
 // out to the physical LEDs.
 void showColors(uint8_t brightness) {
+  // The result of sampling three bands of color from in between the
+  // four bands in colors[].
+  uint8_t result[3][3];
+
   computeColors(brightness, result);
 
   for (uint8_t i = 1; i <= N_LEDS; i++) {
-    px(i, 1);
+    px(result, i, 1);
   }
 
-  px(1, 0);
-  px(4, 0);
-  px(10, 0);
-  px(13, 0);
+  px(result, 1, 0);
+  px(result, 4, 0);
+  px(result, 10, 0);
+  px(result, 13, 0);
 
-  px(3, 2);
-  px(6, 2);
-  px(8, 2);
-  px(12, 2);
-  px(15, 2);
-  px(17, 2);
+  px(result, 3, 2);
+  px(result, 6, 2);
+  px(result, 8, 2);
+  px(result, 12, 2);
+  px(result, 15, 2);
+  px(result, 17, 2);
 
   strip.show();
 }
