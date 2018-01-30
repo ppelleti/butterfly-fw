@@ -43,6 +43,10 @@
 #define N_LEDS 18
 #define LED_PIN 3
 #define POT_PIN A2
+
+#define DITHERING_BITS 2
+#define DITHERING_SHIFT (8 - DITHERING_BITS)
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
 
 union Seed {
@@ -180,7 +184,7 @@ uint8_t handleRounding(uint8_t threshold, uint16_t value) {
   uint8_t hi, lo;
   hi = value >> 8;
   lo = value;
-  if (hi < 255 && lo > threshold) {
+  if (hi < 255 && (lo >> DITHERING_SHIFT) > (threshold >> DITHERING_SHIFT)) {
     return hi + 1;
   } else {
     return hi;
