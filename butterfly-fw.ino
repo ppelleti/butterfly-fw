@@ -47,14 +47,16 @@
 #define DITHERING_BITS 2
 #define DITHERING_SHIFT (8 - DITHERING_BITS)
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
-
 union Seed {
   uint32_t seed;
   uint8_t bytes[4];
 };
 
-// Four bands of color.
+// Interface to NeoPixel LEDs.
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
+
+// Four bands of color.  (The three bands displayed are sampled
+// in between these four.)
 uint8_t colors[4][3];
 
 // Our position (0-255) "in between" the color bands in colors[].
