@@ -75,12 +75,6 @@ const uint8_t PROGMEM gamma8[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
-// These are just some randomly-generated numbers.  There is nothing
-// special about them.
-const uint8_t PROGMEM thresholds[N_LEDS] = {
-  160, 101, 102, 136,  34, 239, 104, 190, 128,
-  228, 110, 249,  33,  53,  83, 146,  57,   3 };
-
 void setup() {
   // put your setup code here, to run once:
 
@@ -101,8 +95,7 @@ void loop() {
 
   uint8_t brightness = pgm_read_byte(&gamma8[analogRead(POT_PIN) >> 2]);
   showColors(brightness);
-  advance(4);
-  delay(20);
+  advance();
 }
 
 // Given v (0-255), n1 (0-2), and n2 (0-2), where n1 != n2,
@@ -159,13 +152,13 @@ void computeColors(uint8_t brightness, uint16_t out[3][3]) {
   }
 }
 
-// Increment the sampling position between the color bands by the
-// specified amount.  This increments the global variable fade, but
+// Increment the sampling position between the color bands by
+// one.  This increments the global variable fade, but
 // when it wraps around, the color bands in the global variable
 // colors[] are moved up by one, and a new random color is stored
 // in colors[0].
-void advance(uint8_t inc) {
-  uint8_t newFade = fade + inc;
+void advance() {
+  uint8_t newFade = fade + 1;
 
   if (newFade < fade) {
     for (int8_t i = 2; i >= 0; i--) {
@@ -180,18 +173,24 @@ void advance(uint8_t inc) {
   fade = newFade;
 }
 
-// Round a 16-bit number to an 8-bit number, but round at a different
-// place for each LED, so they don't appear to all change at once.
-uint8_t handleRounding(uint8_t pixNo, uint16_t value) {
-  uint8_t hi, lo, threshold;
+// Round a 16-bit number to an 8-bit number, with dithering.
+uint8_t handleRounding(uint8_t threshold, uint16_t value) {
+  uint8_t hi, lo;
   hi = value >> 8;
   lo = value;
-  threshold = pgm_read_word(&thresholds[pixNo]);
   if (hi < 255 && lo > threshold) {
     return hi + 1;
   } else {
     return hi;
   }
+}
+
+// Reverse the bits in a byte.
+uint8_t reverse_bits(uint8_t x) {
+  x = ((x & 0x55) << 1) | ((x & 0xaa) >> 1);
+  x = ((x & 0x33) << 2) | ((x & 0xcc) >> 2);
+  x = ((x & 0x0f) << 4) | ((x & 0xf0) >> 4);
+  return x;
 }
 
 // Given a pixel number (0-17), writes the specified color to that pixel.
@@ -203,10 +202,12 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
 // result[] to that pixel.
 void px(const uint16_t result[3][3], uint8_t pixNo, uint8_t idx) {
   uint8_t c[3];
+  uint8_t p0 = pixNo - 1;
+  uint8_t threshold = reverse_bits(p0 + fade);
   for (uint8_t i = 0; i < 3; i++) {
-    c[i] = handleRounding(pixNo - 1, result[idx][i]);
+    c[i] = handleRounding(p0, result[idx][i]);
   }
-  setColor(pixNo - 1, c);
+  setColor(p0, c);
 }
 
 // Given the contents of the global variables colors[] and fade,
