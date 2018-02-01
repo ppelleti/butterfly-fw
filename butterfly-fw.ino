@@ -47,6 +47,10 @@
 #define DITHERING_BITS 2
 #define DITHERING_SHIFT (8 - DITHERING_BITS)
 
+#define FADE_INC 3
+#define FADE_BITS 10
+#define FADE_MAX ((1 << FADE_BITS) - 1)
+
 union Seed {
   uint32_t seed;
   uint8_t bytes[4];
@@ -59,8 +63,11 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ80
 // in between these four.)
 uint8_t colors[4][3];
 
-// Our position (0-255) "in between" the color bands in colors[].
-uint8_t fade;
+// Our position (0-FADE_MAX) "in between" the color bands in colors[].
+uint16_t fade;
+
+// Incremented by one each refresh.  Used for dithering.
+uint8_t dither;
 
 // Gamma correct the potentiometer reading so that halfway is
 // about half subjective brightness.  Also, the minimum brightness
@@ -134,19 +141,19 @@ void randomColor(uint8_t rgb[3]) {
 // Given two color bands rgb1[] and rgb2[], sample in between them and
 // put the result in rgb[].
 // brightness (0-255) specifies the overall brightness.
-// blend (0-255) specifies where in between the two bands to sample
+// blend (0-FADE_MAX) specifies where in between the two bands to sample
 // the color.
-void blendColors(uint8_t brightness, uint8_t blend, const uint8_t rgb1[3],
+void blendColors(uint8_t brightness, uint16_t blend, const uint8_t rgb1[3],
                  const uint8_t rgb2[3], uint16_t rgb[3]) {
   for (uint8_t i = 0; i < 3; i++) {
     uint32_t accum1, accum2;
     accum1 = rgb1[i];
     accum2 = rgb2[i];
     accum1 *= blend;
-    accum2 *= (255 - blend);
+    accum2 *= (FADE_MAX - blend);
     accum1 += accum2;
     accum1 *= brightness;
-    accum1 >>= 8;
+    accum1 >>= FADE_BITS;
     rgb[i] = accum1;
   }
 }
@@ -166,9 +173,9 @@ void computeColors(uint8_t brightness, uint16_t out[3][3]) {
 // colors[] are moved up by one, and a new random color is stored
 // in colors[0].
 void advance() {
-  uint8_t newFade = fade + 1;
+  fade += FADE_INC;
 
-  if (newFade < fade) {
+  if (fade > FADE_MAX) {
     for (int8_t i = 2; i >= 0; i--) {
       for (uint8_t j = 0; j < 3; j++) {
         colors[i+1][j] = colors[i][j];
@@ -176,9 +183,10 @@ void advance() {
     }
 
     randomColor(colors[0]);
+    fade &= FADE_MAX;
   }
 
-  fade = newFade;
+  dither++;
 }
 
 // Round a 16-bit number to an 8-bit number, with dithering.
@@ -211,7 +219,7 @@ void setColor(uint8_t pixNo, const uint8_t c[3]) {
 void px(const uint16_t result[3][3], uint8_t pixNo, uint8_t idx) {
   uint8_t c[3];
   uint8_t p0 = pixNo - 1;
-  uint8_t threshold = reverse_bits(p0 + fade);
+  uint8_t threshold = reverse_bits(p0 + dither);
   for (uint8_t i = 0; i < 3; i++) {
     c[i] = handleRounding(p0, result[idx][i]);
   }
