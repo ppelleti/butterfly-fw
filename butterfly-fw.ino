@@ -27,7 +27,7 @@
  * brightness.
  *
  * The firmware produces bands of random color which slowly move outward.
- * The random seed is stored in EEPROM, and is incremented each time the
+ * The random seed is stored in EEPROM, and is updated each time the
  * program starts, so that the random sequence is different every time.
  *
  * This program requires the Adafruit NeoPixel library:
@@ -43,6 +43,7 @@
 #define N_LEDS 18
 #define LED_PIN 3
 #define POT_PIN A2
+#define UNUSED_ANALOG_PIN A1
 
 #define DITHERING_BITS 3
 #define DITHERING_SHIFT (8 - DITHERING_BITS)
@@ -51,10 +52,7 @@
 #define FADE_BITS 11
 #define FADE_MAX ((1 << FADE_BITS) - 1)
 
-union Seed {
-  uint32_t seed;
-  uint8_t bytes[4];
-};
+#define SEED_ADDR 0
 
 // Interface to NeoPixel LEDs.
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
@@ -97,6 +95,7 @@ void setup() {
   strip.show(); // Initialize all pixels to 'off'
 
   pinMode(POT_PIN, INPUT);
+  pinMode(UNUSED_ANALOG_PIN, INPUT);
 
   initialize_seed();
 
@@ -256,23 +255,35 @@ void showColors(uint8_t brightness) {
   strip.show();
 }
 
-// Initialize the random number generator with the seed stored in
-// the first four bytes of EEPROM.  Then, increment the seed stored
-// in EEPROM.
+// Read a couple of analog inputs to get some randomness.
+uint32_t get_entropy() {
+  uint16_t pot = analogRead(POT_PIN);
+  uint16_t x = analogRead(UNUSED_ANALOG_PIN);
+  uint32_t ret = pot;
+  ret <<= 10;
+  ret ^= x;
+  return ret;
+}
+
+// The 32-bit finalizer from the Murmur3 hash function.
+uint32_t murmur3_finalizer(uint32_t h) {
+  h ^= h >> 16;
+  h *= 0x85ebca6b;
+  h ^= h >> 13;
+  h *= 0xc2b2ae35;
+  h ^= h >> 16;
+
+  return h;
+}
+
+// Initialize the random number generator, using the seed stored in
+// EEPROM, and some analog inputs.  Then update the seed stored in EEPROM.
 void initialize_seed() {
-  Seed oldSeed, newSeed;
+  uint32_t oldSeed, newSeed;
 
-  for (uint8_t i = 0; i < 4; i++) {
-    oldSeed.bytes[i] = EEPROM.read(i);
-  }
+  EEPROM.get(SEED_ADDR, oldSeed);
+  newSeed = murmur3_finalizer(oldSeed + get_entropy());
 
-  randomSeed(oldSeed.seed);
-
-  newSeed.seed = oldSeed.seed + 1;
-
-  for (uint8_t i = 0; i < 4; i++) {
-    if (oldSeed.bytes[i] != newSeed.bytes[i]) {
-      EEPROM.write(i, newSeed.bytes[i]);
-    }
-  }
+  randomSeed(newSeed);
+  EEPROM.put(SEED_ADDR, newSeed);
 }
