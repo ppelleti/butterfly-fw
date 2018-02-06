@@ -44,11 +44,11 @@
 #define LED_PIN 3
 #define POT_PIN A2
 
-#define DITHERING_BITS 2
+#define DITHERING_BITS 3
 #define DITHERING_SHIFT (8 - DITHERING_BITS)
 
 #define FADE_INC 3
-#define FADE_BITS 10
+#define FADE_BITS 11
 #define FADE_MAX ((1 << FADE_BITS) - 1)
 
 union Seed {
