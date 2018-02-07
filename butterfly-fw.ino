@@ -220,7 +220,7 @@ void px(const uint16_t result[3][3], uint8_t pixNo, uint8_t idx) {
   uint8_t p0 = pixNo - 1;
   uint8_t threshold = reverse_bits(p0 + dither);
   for (uint8_t i = 0; i < 3; i++) {
-    c[i] = handleRounding(p0, result[idx][i]);
+    c[i] = handleRounding(threshold, result[idx][i]);
   }
   setColor(p0, c);
 }
