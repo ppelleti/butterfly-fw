@@ -204,7 +204,11 @@ uint8_t handleRounding(uint8_t threshold, uint16_t value) {
 uint8_t reverse_bits(uint8_t x) {
   x = ((x & 0x55) << 1) | ((x & 0xaa) >> 1);
   x = ((x & 0x33) << 2) | ((x & 0xcc) >> 2);
+#ifdef __BUILTIN_AVR_SWAP
+  x = __builtin_avr_swap(x);
+#else
   x = ((x & 0x0f) << 4) | ((x & 0xf0) >> 4);
+#endif
   return x;
 }
 
@@ -236,21 +240,24 @@ void showColors(uint8_t brightness) {
 
   computeColors(brightness, result);
 
-  for (uint8_t i = 1; i <= N_LEDS; i++) {
-    px(result, i, 1);
-  }
-
-  px(result, 1, 0);
-  px(result, 4, 0);
+  px(result,  1, 0);
+  px(result,  2, 1);
+  px(result,  3, 2);
+  px(result,  4, 0);
+  px(result,  5, 1);
+  px(result,  6, 2);
+  px(result,  7, 1);
+  px(result,  8, 2);
+  px(result,  9, 1);
   px(result, 10, 0);
-  px(result, 13, 0);
-
-  px(result, 3, 2);
-  px(result, 6, 2);
-  px(result, 8, 2);
+  px(result, 11, 1);
   px(result, 12, 2);
+  px(result, 13, 0);
+  px(result, 14, 1);
   px(result, 15, 2);
+  px(result, 16, 1);
   px(result, 17, 2);
+  px(result, 18, 1);
 
   strip.show();
 }
