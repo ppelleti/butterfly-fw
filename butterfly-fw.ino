@@ -48,7 +48,7 @@
 #define DITHERING_BITS 3
 #define DITHERING_SHIFT (8 - DITHERING_BITS)
 
-#define FADE_INC 3
+#define FADE_INC 1
 #define FADE_BITS 11
 #define FADE_MAX ((1 << FADE_BITS) - 1)
 
