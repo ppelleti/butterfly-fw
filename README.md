@@ -5,7 +5,7 @@ You'll need to install the [Arduino IDE][2], the
 [ATtiny microcontroller][4].  The version of the ATtiny support for
 the Arduino 1.6.x IDE also seems to work fine with Arduino IDE 1.8.5.
 
-I recommend using the [Tiny AVR Programmer][5] from SparkFun, but it
+I recommend using the [Tiny AVR Programmer][5] from SparkFun, but in
 theory, any AVR programmer should work, if it's hooked up properly.
 
 In the "Tools" menu, "Board" should be set to "ATtiny25/45/85",
